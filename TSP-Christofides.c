@@ -12,6 +12,19 @@ typedef struct {
     double y; // Latitude
 } Cidade;
 
+const char* nomesCidades[NUM_CIDADES] = {
+    "Sao Luis",     //0
+    "Imperatriz",   //1
+    "Caxias",       //2
+    "Timon",        //3
+    "Balsas",       //4
+    "Barreirinhas", //5
+    "Bacabal",      //6
+    "Chapadinha",   //7
+    "Santa Ines",   //8
+    "Acailandia"    //9
+};
+
 //passo 1 criar uma matriz de distancias com as coordenadas dadas nos aquivos docx
 
 //passo 2 utilizar um algoritimo heuristico (nesse caso, algoritimo de Christofides) para descobrir a melhor rota para o TSP
@@ -33,6 +46,8 @@ void showMST(int parent[], double matriz[NUM_CIDADES][NUM_CIDADES]);
 int* PrimsMST(double matriz[NUM_CIDADES][NUM_CIDADES]);
 
 int* IosolateOdd(int parent[], int* count);
+
+int* VizinhoProximo(double matriz[NUM_CIDADES][NUM_CIDADES], int vertices[], int count);
 
 //void VizinhoProximo(int Vert[], double distancia[NUM_CIDADES][NUM_CIDADES]);
 void ChristofidesAlgorithm(double distancia[NUM_CIDADES][NUM_CIDADES]);
@@ -60,8 +75,10 @@ int minKey(int key[], bool mstSet[]){
     int min = INT_MAX, min_index;
 
     for (int v = 0; v < NUM_CIDADES;v++){
-        if (mstSet[v] == false && key[v] < min) {min = key[v],min_index = v;}
-    
+        if (mstSet[v] == false && key[v] < min) {
+            min = key[v];
+            min_index = v;
+        }    
     }
     return min_index;
 }
@@ -79,7 +96,6 @@ void showMST(int parent[], double matriz[NUM_CIDADES][NUM_CIDADES]){
     }
     printf("\n");
 }
-
 
 //Algoritmo para gerar a MST
 int* PrimsMST(double matriz[NUM_CIDADES][NUM_CIDADES]){
@@ -128,7 +144,6 @@ int* PrimsMST(double matriz[NUM_CIDADES][NUM_CIDADES]){
     }
 
     //Por fim usamos a funcao showMST para printar ela
-    //showMST(parent,matriz);
     return parent;
 }
 
@@ -156,7 +171,45 @@ int* IosolateOdd(int parent[], int* count){
     return VetImpares;
 }
 
+//
+int* VizinhoProximo(double matriz[NUM_CIDADES][NUM_CIDADES], int vertices[], int count){
+    bool visitados[NUM_CIDADES] = {false};
+    static int caminho[NUM_CIDADES+1];
+    int caminhoIndice = 0;
 
+    //Comecando pelo 1 vertice da lista
+    int atual = vertices[0];
+    visitados[atual] = true;
+    caminho[caminhoIndice++] = atual;
+
+    //Enqt houver cidades/vertices n visitados
+    while (caminhoIndice < count)
+    {
+        int proximo = -1;
+        double menorDist = INT_MAX;
+
+        //Encontrando o vizinho mais proximo n visitado
+        for(int i = 0; i < count; i++){
+            int vizinho = vertices[i];
+            if (!visitados[vizinho] && matriz[atual][vizinho] < menorDist) {
+                menorDist = matriz[atual][vizinho];
+                proximo = vizinho;
+            }
+        }
+
+        // Adiciona o próximo vértice ao caminho
+        if (proximo != -1) {
+            visitados[proximo] = true;
+            caminho[caminhoIndice++] = proximo;
+            atual = proximo;
+        }
+    }
+
+    caminho[caminhoIndice++] = 0;
+
+    return caminho;
+    
+}
 
 void ChristofidesAlgorithm(double distancias[NUM_CIDADES][NUM_CIDADES]){
 
@@ -167,18 +220,37 @@ void ChristofidesAlgorithm(double distancias[NUM_CIDADES][NUM_CIDADES]){
     int count;
     int *VertImpar = IosolateOdd(parent, &count); 
 
+    /*
+    //para verificar quais os vertices isolados
     printf("Vértices com grau ímpar:\n");
     for (int i = 0; i < count; i++) {
         printf("%d ", VertImpar[i]);
     }
     printf("\n");
+    */
+
+    //passo 2.3
+    int *VizinhoProx = VizinhoProximo(distancias,VertImpar,count);
+
+    //analise dos caminhos da MST cm o VmP dos vertices isolados
+    printf("Caminho MST:\n");
+    for(int i = 1; i < NUM_CIDADES-1; i++){
+        printf("%s -> %s\n",nomesCidades[parent[i]],nomesCidades[i]);
+    }
+    printf("\n");
+    
+    printf("Caminho VmP:\n");
+    for (int i = 0; i < count+1; i++) {
+        printf("%s ", nomesCidades[VizinhoProx[i]]);
+    }
+    printf("\n");
+
+
 
 }
 
 
 int main() {
-
-
     // Coordenadas das cidades (extraídas do arquivo)
     Cidade cidades[NUM_CIDADES] = {
         {2.549, 44.303}, // São Luís
