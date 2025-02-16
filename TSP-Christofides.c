@@ -6,7 +6,7 @@
 #include <float.h>
 #include <assert.h>
 
-#define NUM_CIDADES 318
+#define NUM_CIDADES 350
 
 typedef struct {
     double x, y;
@@ -27,6 +27,8 @@ typedef struct
     int* dados;
     int topo, capacidade;
 }Pilha;
+
+Cidade* lerArquivo(char* nomeArquivo);
 
 int pesoMin(double peso[], bool mstSet[],int numVerts);
 int* MST(double matriz[NUM_CIDADES][NUM_CIDADES]);
@@ -58,11 +60,39 @@ double distEuclidiana(Cidade cidade1, Cidade cidade2) {
 }
 
 // Função para criar a matriz de distâncias
-void matrizDistancias(Cidade cidades[], double matriz[NUM_CIDADES][NUM_CIDADES]) {
+void matrizDistancias(Cidade* cidades, double matriz[NUM_CIDADES][NUM_CIDADES]) {
     for (int i = 0; i < NUM_CIDADES; i++)
         for (int j = 0; j < NUM_CIDADES; j++) 
             matriz[i][j] = distEuclidiana(cidades[i], cidades[j]);
 }
+
+Cidade* lerArquivo(char* nomeArquivo){
+    FILE *cenario; //ponteiro dos arquivos/cenarios
+    int cidadeslidas = 0; //armazena as cidades lidas
+    char buffer[100]; //buffer pra armazenar as linhas lidas
+    Cidade* coordenadascidades = malloc(NUM_CIDADES * sizeof(Cidade)); //armazenas as coordenadas
+
+    cenario = fopen(nomeArquivo, "r"); // abrir o arquivo
+    if (cenario == NULL) {
+        perror("Erro ao abrir o arquivo");
+        return NULL;
+    }
+
+    while (fgets(buffer, sizeof(buffer), cenario)) {  //essa parte vai identificar as coordenadas no txt
+        int id;                                     // oq tiver o formato 1(num inteiro) x y ele vai ler e armazenar
+        double x, y;
+        if (sscanf(buffer, "%d %lf %lf", &id, &x, &y) == 3) {  // pega os 3 valores da linha
+            coordenadascidades[cidadeslidas].x = x;  // se tiver lido, armazena as coordenadas
+            coordenadascidades[cidadeslidas].y = y;
+            cidadeslidas++;
+        }
+    }
+
+    fclose(cenario); //fecha o aqruivo de leitura das coordenadas
+
+    return coordenadascidades;
+}
+
 
 //Valor Chave minimo do conjunto de vertices
 int pesoMin(double peso[], bool verts[],int numVerts){
@@ -365,6 +395,8 @@ void ChristofidesAlgorithm(double distancias[NUM_CIDADES][NUM_CIDADES]){
 
 int main() {
     // Coordenadas das cidades (extraídas do arquivo)
+    
+    /*
     Cidade cidades[NUM_CIDADES] = {
         {63.0, 71.0},
         {94.0, 71.0},
@@ -685,6 +717,10 @@ int main() {
         {1496.0, -79.0},
         {1693.0, 4055.0}
     };
+    */
+    char arquivo[50];
+    scanf("%s",arquivo);
+    Cidade* cidades = lerArquivo(arquivo);
 
     // Matriz para armazenar as distâncias
     double distancias[NUM_CIDADES][NUM_CIDADES];
