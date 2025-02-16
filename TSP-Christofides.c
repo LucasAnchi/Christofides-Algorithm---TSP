@@ -28,24 +28,6 @@ typedef struct
     int topo, capacidade;
 }Pilha;
 
-
-
-//passo 1 criar uma matriz de distancias com as coordenadas dadas nos aquivos docx
-
-//passo 2 utilizar um algoritimo heuristico (nesse caso, algoritimo de Christofides) para descobrir a melhor rota para o TSP
-//passo 2.1 gerar uma MST (Minimum Spanning Tree), nesse caso utilizando o Prim’s Algorithm
-//passo 2.2 isolar os vertices q possuem grau(qnt de saidas/arestas) impar
-//passo 2.3 utilizar emparelhamento de peso minimo nos vertices impares
-//passo 2.4 formar um multigrafo dos passos 2.1 e 2.3 (significa juntar os dois caminhos feitos por eles)
-//definicao de multigrafo: é um grafo que pode ter arestas múltiplas, ou seja, arestas que conectam os mesmos vértices
-//passo 2.5 achar o caminho Euleriano do grafico/matriz
-//definicao de caminho Euleriano: é um caminho em um grafo que visita toda aresta exatamente uma vez.
-//ps: da pra fazer isso pq qnd junta os dois graficos no passo 2.4 a gnt conta as arestas que se sobrepoem como duas
-//passo 2.6 gerar um caminho TSP (Travelling salesman problem) usando o passo anterior
-//se houver alguma cidade (vertice) repetido, pular para o proximo
-
-//passo 3 optimizar esse negocio ai (ou com Ant Colony Optimization ou Simulated Annealing)
-
 int pesoMin(double peso[], bool mstSet[],int numVerts);
 int* MST(double matriz[NUM_CIDADES][NUM_CIDADES]);
 
@@ -322,17 +304,7 @@ double calcularDistancia(int* tour, int tamanhoTour, double distancias[NUM_CIDAD
 }
 
 void ChristofidesAlgorithm(double distancias[NUM_CIDADES][NUM_CIDADES]){
-
-    /*
-    printf("Matriz de distâncias (distância euclidiana):\n");
-    for (int i = 0; i < NUM_CIDADES; i++) {
-        for (int j = 0; j < NUM_CIDADES; j++) {
-            printf("%.2f\t", distancias[i][j]);
-        }
-        printf("\n");
-    }
-    */
-    
+  
     //passo 2.1: Gerar a MST
     int *caminhoMST = MST(distancias);
 
@@ -389,29 +361,6 @@ void ChristofidesAlgorithm(double distancias[NUM_CIDADES][NUM_CIDADES]){
         free(multigrafo.lista[i].vertices);
     }
     free(multigrafo.lista);
-
-
-    /*
-    //debug
-    printf("Caminho MST:\n");
-    for(int i = 1; i < NUM_CIDADES; i++){
-        printf("%s -> %s\n",nomesCidades[caminhoMST[i]],nomesCidades[i]);
-    }
-    printf("\n");
-    
-    printf("Vertices Isolados:\n");
-    for(int i = 0;i<count;i++){
-        printf("%s \n",nomesCidades[VertImpar[i]]);
-    }
-    printf("\n");
-    
-    printf("Emparelhamento Mínimo (Heurística Gulosa):\n");
-    for (int i = 0; i < numPares; i++) {
-        printf("%s ↔ %s\n", nomesCidades[paresEmparelhados[i][0]], nomesCidades[paresEmparelhados[i][1]]);
-    }
-    */
-
-
 }
 
 int main() {
