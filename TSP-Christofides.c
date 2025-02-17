@@ -6,130 +6,125 @@
 #include <float.h>
 #include <assert.h>
 
-#define NUM_CIDADES 350
-
 typedef struct {
     double x, y;
-}Cidade;
+} Cidade;
 
-typedef struct 
-{
+typedef struct {
     int* vertices;
     int tamanho, capacidade;
 } ListaAdjacencia;
 
-typedef struct{
+typedef struct {
     ListaAdjacencia* lista;
-}Multigrafo;
+} Multigrafo;
 
-typedef struct 
-{
+typedef struct {
     int* dados;
     int topo, capacidade;
-}Pilha;
+} Pilha;
 
-Cidade* lerArquivo(char* nomeArquivo);
+Cidade* lerArquivo(char* nomeArquivo, int numCidades);
 
-int pesoMin(double peso[], bool mstSet[],int numVerts);
-int* MST(double matriz[NUM_CIDADES][NUM_CIDADES]);
+int pesoMin(double peso[], bool mstSet[], int numVerts);
+int* MST(double** matriz, int numCidades);
 
-int* IsolarVerticesImpares(int parent[], int* count);
+int* IsolarVerticesImpares(int parent[], int* count, int numCidades);
 
-int** EmpMin(double dist[NUM_CIDADES][NUM_CIDADES],int* vertsImp,int count,int* qntPares);
+int** EmpMin(double** dist, int* vertsImp, int count, int* qntPares, int numCidades);
 
-void initMultigrafo(Multigrafo* mg);
-void addAresta(Multigrafo* mg,int u,int v);
-int removerAresta(Multigrafo* mg,int u);
-void Multi(Multigrafo* mg, int* mst, int** Emp, int pares);
+void initMultigrafo(Multigrafo* mg, int numCidades);
+void addAresta(Multigrafo* mg, int u, int v);
+int removerAresta(Multigrafo* mg, int u);
+void Multi(Multigrafo* mg, int* mst, int** Emp, int pares, int numCidades);
 
 void initPilha(Pilha* p);
 void empilhar(Pilha* p, int valor);
 int desempilhar(Pilha* p);
 int topoPilha(Pilha* p);
 int pilhaVazia(Pilha* p);
-void hierholzer(int inicio, Multigrafo* mg, Pilha* circuito);
+void hierholzer(int inicio, Multigrafo* mg, Pilha* circuito, int numCidades);
 
-void shortcutCircuit(int* circuito, int tamanhoCircuito, int* tour, int* tamanhoTour);
-double calcularDistancia(int* tour, int tamanhoTour, double distancias[NUM_CIDADES][NUM_CIDADES]);
+void shortcutCircuit(int* circuito, int tamanhoCircuito, int* tour, int* tamanhoTour, int numCidades);
+double calcularDistancia(int* tour, int tamanhoTour, double** distancias, int numCidades);
 
-void ChristofidesAlgorithm(double distancia[NUM_CIDADES][NUM_CIDADES]);
+void ChristofidesAlgorithm(double** distancias, int numCidades);
 
 // Função para calcular a distância euclidiana entre duas cidades
 double distEuclidiana(Cidade cidade1, Cidade cidade2) {
-    return sqrt(pow((cidade1.x - cidade2.x),2) + pow((cidade1.y - cidade2.y),2));
+    return sqrt(pow((cidade1.x - cidade2.x), 2) + pow((cidade1.y - cidade2.y), 2));
 }
 
 // Função para criar a matriz de distâncias
-void matrizDistancias(Cidade* cidades, double matriz[NUM_CIDADES][NUM_CIDADES]) {
-    for (int i = 0; i < NUM_CIDADES; i++)
-        for (int j = 0; j < NUM_CIDADES; j++) 
+void matrizDistancias(Cidade* cidades, double** matriz, int numCidades) {
+    for (int i = 0; i < numCidades; i++)
+        for (int j = 0; j < numCidades; j++)
             matriz[i][j] = distEuclidiana(cidades[i], cidades[j]);
 }
 
-Cidade* lerArquivo(char* nomeArquivo){
-    FILE *cenario; //ponteiro dos arquivos/cenarios
-    int cidadeslidas = 0; //armazena as cidades lidas
-    char buffer[100]; //buffer pra armazenar as linhas lidas
-    Cidade* coordenadascidades = malloc(NUM_CIDADES * sizeof(Cidade)); //armazenas as coordenadas
+Cidade* lerArquivo(char* nomeArquivo, int numCidades) {
+    FILE* cenario;
+    int cidadeslidas = 0;
+    char buffer[100];
+    Cidade* coordenadascidades = malloc(numCidades * sizeof(Cidade));
 
-    cenario = fopen(nomeArquivo, "r"); // abrir o arquivo
+    cenario = fopen(nomeArquivo, "r");
     if (cenario == NULL) {
         perror("Erro ao abrir o arquivo");
         return NULL;
     }
 
-    while (fgets(buffer, sizeof(buffer), cenario)) {  //essa parte vai identificar as coordenadas no txt
-        int id;                                     // oq tiver o formato 1(num inteiro) x y ele vai ler e armazenar
+    while (fgets(buffer, sizeof(buffer), cenario)) {
+        int id;
         double x, y;
-        if (sscanf(buffer, "%d %lf %lf", &id, &x, &y) == 3) {  // pega os 3 valores da linha
-            coordenadascidades[cidadeslidas].x = x;  // se tiver lido, armazena as coordenadas
+        if (sscanf(buffer, "%d %lf %lf", &id, &x, &y) == 3) {
+            coordenadascidades[cidadeslidas].x = x;
             coordenadascidades[cidadeslidas].y = y;
             cidadeslidas++;
         }
     }
 
-    fclose(cenario); //fecha o aqruivo de leitura das coordenadas
-
+    fclose(cenario);
     return coordenadascidades;
 }
 
-
-//Valor Chave minimo do conjunto de vertices
-int pesoMin(double peso[], bool verts[],int numVerts){
-
-    double min = DBL_MAX; 
+int pesoMin(double peso[], bool verts[], int numVerts) {
+    double min = DBL_MAX;
     int min_index = -1;
 
-    for (int v = 0; v < numVerts;v++){
+    for (int v = 0; v < numVerts; v++) {
         if (!verts[v] && peso[v] < min) {
             min = peso[v];
             min_index = v;
-        }    
+        }
     }
     return min_index;
 }
 
-int* MST(double matriz[NUM_CIDADES][NUM_CIDADES]){
-    int* caminho = malloc(NUM_CIDADES * sizeof(int));
+int* MST(double** matriz, int numCidades) {
+    int* caminho = malloc(numCidades * sizeof(int));
     assert(caminho);
 
-    double peso[NUM_CIDADES];
-    bool visitado[NUM_CIDADES] = {false};
+    double peso[numCidades];
+    bool visitado[numCidades];
+    for(int i = 0; i < numCidades;i++){
+        visitado[i] = false;
+    }
 
-    for(int i = 0; i < NUM_CIDADES;i++) {
+    for (int i = 0; i < numCidades; i++) {
         peso[i] = DBL_MAX;
         caminho[i] = -1;
     }
 
     peso[0] = 0.0;
-    for(int count = 0; count < NUM_CIDADES-1;count++){
-        int u = pesoMin(peso,visitado,NUM_CIDADES);
-        if(u == -1) {break;}
+    for (int count = 0; count < numCidades - 1; count++) {
+        int u = pesoMin(peso, visitado, numCidades);
+        if (u == -1) { break; }
 
         visitado[u] = true;
 
-        for(int v = 0;v < NUM_CIDADES;v++){
-            if(matriz[u][v] > 0 && !visitado[v] && matriz[u][v] < peso[v]){
+        for (int v = 0; v < numCidades; v++) {
+            if (matriz[u][v] > 0 && !visitado[v] && matriz[u][v] < peso[v]) {
                 caminho[v] = u;
                 peso[v] = matriz[u][v];
             }
@@ -139,27 +134,29 @@ int* MST(double matriz[NUM_CIDADES][NUM_CIDADES]){
     return caminho;
 }
 
-int* IsolarVerticesImpares(int caminhoMST[], int* count){
-    int grau[NUM_CIDADES] = {0};
+int* IsolarVerticesImpares(int caminhoMST[], int* count, int numCidades) {
+    int grau[numCidades];
+    for(int i = 0; i < numCidades;i++){
+        grau[i] = 0;
+    }
     *count = 0;
 
-    //calcular o grau de cada vertice
-    for (int i = 1; i < NUM_CIDADES; i++) {
-        int u = caminhoMST[i]; // Pai do vértice i na MST
-        int v = i;         // Vértice i
-        grau[u]++;         // Incrementa o grau do pai
-        grau[v]++;         // Incrementa o grau do vértice
+    for (int i = 1; i < numCidades; i++) {
+        int u = caminhoMST[i];
+        int v = i;
+        grau[u]++;
+        grau[v]++;
     }
 
-    for (int i = 0; i < NUM_CIDADES; i++) {
+    for (int i = 0; i < numCidades; i++) {
         if (grau[i] % 2 != 0) {
             (*count)++;
         }
     }
 
-    int* VetImpares = malloc((*count)*sizeof(int));
+    int* VetImpares = malloc((*count) * sizeof(int));
     int aux = 0;
-    for(int i = 0; i < NUM_CIDADES;i++){
+    for (int i = 0; i < numCidades; i++) {
         if (grau[i] % 2 != 0) {
             VetImpares[aux++] = i;
         }
@@ -168,8 +165,8 @@ int* IsolarVerticesImpares(int caminhoMST[], int* count){
     return VetImpares;
 }
 
-int** EmpMin(double dist[NUM_CIDADES][NUM_CIDADES], int* vertsImp, int count, int* qntPares) {
-    int** pares = (int**)malloc((count/2) * sizeof(int*));
+int** EmpMin(double** dist, int* vertsImp, int count, int* qntPares, int numCidades) {
+    int** pares = (int**)malloc((count / 2) * sizeof(int*));
     if (pares == NULL) {
         free(pares);
         return NULL;
@@ -204,76 +201,76 @@ int** EmpMin(double dist[NUM_CIDADES][NUM_CIDADES], int* vertsImp, int count, in
     return pares;
 }
 
-void initMultigrafo(Multigrafo* mg){
-    mg->lista = (ListaAdjacencia*)malloc(NUM_CIDADES * sizeof(ListaAdjacencia));
-    for(int i = 0;i < NUM_CIDADES;i++){
+void initMultigrafo(Multigrafo* mg, int numCidades) {
+    mg->lista = (ListaAdjacencia*)malloc(numCidades * sizeof(ListaAdjacencia));
+    for (int i = 0; i < numCidades; i++) {
         mg->lista[i].vertices = NULL;
         mg->lista[i].tamanho = 0;
         mg->lista[i].capacidade = 0;
     }
 }
 
-void addAresta(Multigrafo* mg, int u, int v){
-    if(mg->lista[u].tamanho >= mg->lista[u].capacidade){
-        int nvCap = (mg->lista[u].capacidade == 0) ? 4: mg->lista[u].capacidade * 2;
+void addAresta(Multigrafo* mg, int u, int v) {
+    if (mg->lista[u].tamanho >= mg->lista[u].capacidade) {
+        int nvCap = (mg->lista[u].capacidade == 0) ? 4 : mg->lista[u].capacidade * 2;
         mg->lista[u].vertices = realloc(mg->lista[u].vertices, nvCap * sizeof(int));
         mg->lista[u].capacidade = nvCap;
     }
 
     mg->lista[u].vertices[mg->lista[u].tamanho++] = v;
 
-    if(mg->lista[v].tamanho >= mg->lista[v].capacidade){
-        int nvCap = (mg->lista[v].capacidade == 0) ? 4: mg->lista[v].capacidade*2;
-        mg->lista[v].vertices = realloc(mg->lista[v].vertices,nvCap * sizeof(int));
+    if (mg->lista[v].tamanho >= mg->lista[v].capacidade) {
+        int nvCap = (mg->lista[v].capacidade == 0) ? 4 : mg->lista[v].capacidade * 2;
+        mg->lista[v].vertices = realloc(mg->lista[v].vertices, nvCap * sizeof(int));
         mg->lista[v].capacidade = nvCap;
     }
     mg->lista[v].vertices[mg->lista[v].tamanho++] = u;
 }
 
-void Multi(Multigrafo* mg, int* mst, int** emp, int pares){
-    for(int i = 1;i < NUM_CIDADES;i++){
+void Multi(Multigrafo* mg, int* mst, int** emp, int pares, int numCidades) {
+    for (int i = 1; i < numCidades; i++) {
         int caminho = mst[i];
-        addAresta(mg,caminho,i);
+        addAresta(mg, caminho, i);
     }
 
-    for(int i = 0;i < pares;i++){
+    for (int i = 0; i < pares; i++) {
         int u = emp[i][0];
         int v = emp[i][1];
-        addAresta(mg,u,v);
+        addAresta(mg, u, v);
     }
 }
 
-void initPilha(Pilha* p){
+void initPilha(Pilha* p) {
     p->capacidade = 16;
-    p->dados = malloc(p->capacidade*sizeof(int));
+    p->dados = malloc(p->capacidade * sizeof(int));
     p->topo = -1;
 }
 
-void empilhar(Pilha* p, int valor){
-    if(p->topo == p->capacidade -1){
-        p->capacidade *=2;
-        p->dados = realloc(p->dados, p->capacidade*sizeof(int));
+void empilhar(Pilha* p, int valor) {
+    if (p->topo == p->capacidade - 1) {
+        p->capacidade *= 2;
+        p->dados = realloc(p->dados, p->capacidade * sizeof(int));
     }
     p->dados[++p->topo] = valor;
 }
 
-int desempilhar(Pilha* p){
-    if(p->topo == -1) return -1;
+int desempilhar(Pilha* p) {
+    if (p->topo == -1) return -1;
     return p->dados[p->topo--];
 }
 
-int topoPilha(Pilha* p){
-    if(p->topo == -1) return -1;
+int topoPilha(Pilha* p) {
+    if (p->topo == -1) return -1;
     return p->dados[p->topo];
 }
 
-int pilhaVazia(Pilha* p){
+int pilhaVazia(Pilha* p) {
     return p->topo == -1;
 }
 
-int removerAresta(Multigrafo* mg, int u){
-    if(mg->lista[u].tamanho == 0) return -1;
-    int v = mg->lista[u].vertices[mg->lista[u].tamanho -1];
+int removerAresta(Multigrafo* mg, int u) {
+    if (mg->lista[u].tamanho == 0) return -1;
+    int v = mg->lista[u].vertices[mg->lista[u].tamanho - 1];
     mg->lista[u].tamanho--;
 
     for (int i = 0; i < mg->lista[v].tamanho; i++) {
@@ -286,7 +283,7 @@ int removerAresta(Multigrafo* mg, int u){
     return v;
 }
 
-void hierholzer(int inicio, Multigrafo* mg, Pilha* circuito) {
+void hierholzer(int inicio, Multigrafo* mg, Pilha* circuito, int numCidades) {
     Pilha pilha;
     initPilha(&pilha);
     empilhar(&pilha, inicio);
@@ -295,7 +292,7 @@ void hierholzer(int inicio, Multigrafo* mg, Pilha* circuito) {
     int iterations = 0;
 
     while (!pilhaVazia(&pilha)) {
-        if(iterations++ > max_iterations){
+        if (iterations++ > max_iterations) {
             printf("Loop infinito detectado!\n");
             break;
         }
@@ -310,8 +307,11 @@ void hierholzer(int inicio, Multigrafo* mg, Pilha* circuito) {
     }
 }
 
-void shortcutCircuit(int* circuito, int tamanhoCircuito, int* tour, int* tamanhoTour) {
-    bool visitado[NUM_CIDADES] = {false};
+void shortcutCircuit(int* circuito, int tamanhoCircuito, int* tour, int* tamanhoTour, int numCidades) {
+    bool visitado[numCidades];
+    for(int i = 0; i < numCidades;i++){
+        visitado[i] = false;
+    }
     *tamanhoTour = 0;
     for (int i = 0; i < tamanhoCircuito; i++) {
         int cidade = circuito[i];
@@ -321,65 +321,46 @@ void shortcutCircuit(int* circuito, int tamanhoCircuito, int* tour, int* tamanho
             visitado[cidade] = true;
         }
     }
-    tour[*tamanhoTour] = tour[0]; // Completa o ciclo
+    tour[*tamanhoTour] = tour[0];
     (*tamanhoTour)++;
 }
 
-double calcularDistancia(int* tour, int tamanhoTour, double distancias[NUM_CIDADES][NUM_CIDADES]) {
+double calcularDistancia(int* tour, int tamanhoTour, double** distancias, int numCidades) {
     double distanciaTotal = 0.0;
     for (int i = 0; i < tamanhoTour - 1; i++) {
-        distanciaTotal += distancias[tour[i]][tour[i+1]];
+        distanciaTotal += distancias[tour[i]][tour[i + 1]];
     }
     return distanciaTotal;
 }
 
-void ChristofidesAlgorithm(double distancias[NUM_CIDADES][NUM_CIDADES]){
-  
-    //passo 2.1: Gerar a MST
-    int *caminhoMST = MST(distancias);
-
-    //passo 2.2
+void ChristofidesAlgorithm(double** distancias, int numCidades) {
+    int* caminhoMST = MST(distancias, numCidades);
     int count;
-    int *VertImpar = IsolarVerticesImpares(caminhoMST, &count); 
-
-    // Passo 2.3: Emparelhamento mínimo (heurística gulosa)
+    int* VertImpar = IsolarVerticesImpares(caminhoMST, &count, numCidades);
     int numPares;
-    int** paresEmparelhados = EmpMin(distancias, VertImpar, count, &numPares);
-
-    //Passo 2.4: construir Multigrafo
+    int** paresEmparelhados = EmpMin(distancias, VertImpar, count, &numPares, numCidades);
     Multigrafo multigrafo;
-    initMultigrafo(&multigrafo);
-    Multi(&multigrafo, caminhoMST, paresEmparelhados,  numPares);
-
-    //Passo 2.5: Encontrar o caminho Euleriano
+    initMultigrafo(&multigrafo, numCidades);
+    Multi(&multigrafo, caminhoMST, paresEmparelhados, numPares, numCidades);
     Pilha camEuler;
     initPilha(&camEuler);
     int inicio = (count > 0) ? VertImpar[0] : 0;
-    hierholzer(inicio, &multigrafo, &camEuler);
-
-    //pilha -> array
-    int* camEulerArray = malloc((camEuler.topo +1) * sizeof(int));
+    hierholzer(inicio, &multigrafo, &camEuler, numCidades);
+    int* camEulerArray = malloc((camEuler.topo + 1) * sizeof(int));
     for (int i = camEuler.topo; i >= 0; i--) {
         camEulerArray[camEuler.topo - i] = camEuler.dados[i];
     }
     int tamanhoCircuito = camEuler.topo + 1;
-
-    // Passo 2.6: Atalhar para TSP
-    int tourTSP[NUM_CIDADES + 1];
+    int tourTSP[numCidades + 1];
     int tamanhoTour;
-    shortcutCircuit(camEulerArray, tamanhoCircuito, tourTSP, &tamanhoTour);
-
-    // Calcular distância
-    double distanciaTotal = calcularDistancia(tourTSP, tamanhoTour, distancias);
-
-    // Imprimir resultados
+    shortcutCircuit(camEulerArray, tamanhoCircuito, tourTSP, &tamanhoTour, numCidades);
+    double distanciaTotal = calcularDistancia(tourTSP, tamanhoTour, distancias, numCidades);
     printf("\nTour TSP:\n");
     for (int i = 0; i < tamanhoTour; i++) {
         printf("%d", tourTSP[i]);
         if (i < tamanhoTour - 1) printf(" -> ");
     }
     printf("\nDistância Total: %.2f\n", distanciaTotal);
-
     free(camEulerArray);
     free(VertImpar);
     free(caminhoMST);
@@ -387,348 +368,33 @@ void ChristofidesAlgorithm(double distancias[NUM_CIDADES][NUM_CIDADES]){
         free(paresEmparelhados[i]);
     }
     free(paresEmparelhados);
-    for (int i = 0; i < NUM_CIDADES; i++) {
+    for (int i = 0; i < numCidades; i++) {
         free(multigrafo.lista[i].vertices);
     }
     free(multigrafo.lista);
 }
 
 int main() {
-    // Coordenadas das cidades (extraídas do arquivo)
-    
-    /*
-    Cidade cidades[NUM_CIDADES] = {
-        {63.0, 71.0},
-        {94.0, 71.0},
-        {142.0, 370.0},
-        {173.0, 1276.0},
-        {205.0, 1213.0},
-        {213.0, 69.0},
-        {244.0, 69.0},
-        {276.0, 630.0},
-        {283.0, 732.0},
-        {362.0, 69.0},
-        {394.0, 69.0},
-        {449.0, 370.0},
-        {480.0, 1276.0},
-        {512.0, 1213.0},
-        {528.0, 157.0},
-        {583.0, 630.0},
-        {591.0, 732.0},
-        {638.0, 654.0},
-        {638.0, 496.0},
-        {638.0, 314.0},
-        {638.0, 142.0},
-        {669.0, 142.0},
-        {677.0, 315.0},
-        {677.0, 496.0},
-        {677.0, 654.0},
-        {709.0, 654.0},
-        {709.0, 496.0},
-        {709.0, 315.0},
-        {701.0, 142.0},
-        {764.0, 220.0},
-        {811.0, 189.0},
-        {843.0, 173.0},
-        {858.0, 370.0},
-        {890.0, 1276.0},
-        {921.0, 1213.0},
-        {992.0, 630.0},
-        {1000.0, 732.0},
-        {1197.0, 1276.0},
-        {1228.0, 1213.0},
-        {1276.0, 205.0},
-        {1299.0, 630.0},
-        {1307.0, 732.0},
-        {1362.0, 654.0},
-        {1362.0, 496.0},
-        {1362.0, 291.0},
-        {1425.0, 654.0},
-        {1425.0, 496.0},
-        {1425.0, 291.0},
-        {1417.0, 173.0},
-        {1488.0, 291.0},
-        {1488.0, 496.0},
-        {1488.0, 654.0},
-        {1551.0, 654.0},
-        {1551.0, 496.0},
-        {1551.0, 291.0},
-        {1614.0, 291.0},
-        {1614.0, 496.0},
-        {1614.0, 654.0},
-        {1732.0, 189.0},
-        {1811.0, 1276.0},
-        {1843.0, 1213.0},
-        {1913.0, 630.0},
-        {1921.0, 732.0},
-        {2087.0, 370.0},
-        {2118.0, 1276.0},
-        {2150.0, 1213.0},
-        {2189.0, 205.0},
-        {2220.0, 189.0},
-        {2220.0, 630.0},
-        {2228.0, 732.0},
-        {2244.0, 142.0},
-        {2276.0, 315.0},
-        {2276.0, 496.0},
-        {2276.0, 654.0},
-        {2315.0, 654.0},
-        {2315.0, 496.0},
-        {2315.0, 315.0},
-        {2331.0, 142.0},
-        {2346.0, 315.0},
-        {2346.0, 496.0},
-        {2346.0, 654.0},
-        {2362.0, 142.0},
-        {2402.0, 157.0},
-        {2402.0, 220.0},
-        {2480.0, 142.0},
-        {2496.0, 370.0},
-        {2528.0, 1276.0},
-        {2559.0, 1213.0},
-        {2630.0, 630.0},
-        {2638.0, 732.0},
-        {2756.0, 69.0},
-        {2787.0, 69.0},
-        {2803.0, 370.0},
-        {2835.0, 1276.0},
-        {2866.0, 1213.0},
-        {2906.0, 69.0},
-        {2937.0, 69.0},
-        {2937.0, 630.0},
-        {2945.0, 732.0},
-        {3016.0, 1276.0},
-        {3055.0, 69.0},
-        {3087.0, 69.0},
-        {606.0, 220.0},
-        {1165.0, 370.0},
-        {1780.0, 370.0},
-        {63.0, 1402.0},
-        {94.0, 1402.0},
-        {142.0, 1701.0},
-        {173.0, 2607.0},
-        {205.0, 2544.0},
-        {213.0, 1400.0},
-        {244.0, 1400.0},
-        {276.0, 1961.0},
-        {283.0, 2063.0},
-        {362.0, 1400.0},
-        {394.0, 1400.0},
-        {449.0, 1701.0},
-        {480.0, 2607.0},
-        {512.0, 2544.0},
-        {528.0, 1488.0},
-        {583.0, 1961.0},
-        {591.0, 2063.0},
-        {638.0, 1985.0},
-        {638.0, 1827.0},
-        {638.0, 1645.0},
-        {638.0, 1473.0},
-        {669.0, 1473.0},
-        {677.0, 1646.0},
-        {677.0, 1827.0},
-        {677.0, 1985.0},
-        {709.0, 1985.0},
-        {709.0, 1827.0},
-        {709.0, 1646.0},
-        {701.0, 1473.0},
-        {764.0, 1551.0},
-        {811.0, 1520.0},
-        {843.0, 1504.0},
-        {858.0, 1701.0},
-        {890.0, 2607.0},
-        {921.0, 2544.0},
-        {992.0, 1961.0},
-        {1000.0, 2063.0},
-        {1197.0, 2607.0},
-        {1228.0, 2544.0},
-        {1276.0, 1536.0},
-        {1299.0, 1961.0},
-        {1307.0, 2063.0},
-        {1362.0, 1985.0},
-        {1362.0, 1827.0},
-        {1362.0, 1622.0},
-        {1425.0, 1985.0},
-        {1425.0, 1827.0},
-        {1425.0, 1622.0},
-        {1417.0, 1504.0},
-        {1488.0, 1622.0},
-        {1488.0, 1827.0},
-        {1488.0, 1985.0},
-        {1551.0, 1985.0},
-        {1551.0, 1827.0},
-        {1551.0, 1622.0},
-        {1614.0, 1622.0},
-        {1614.0, 1827.0},
-        {1614.0, 1985.0},
-        {1732.0, 1520.0},
-        {1811.0, 2607.0},
-        {1843.0, 2544.0},
-        {1913.0, 1961.0},
-        {1921.0, 2063.0},
-        {2087.0, 1701.0},
-        {2118.0, 2607.0},
-        {2150.0, 2544.0},
-        {2189.0, 1536.0},
-        {2220.0, 1520.0},
-        {2220.0, 1961.0},
-        {2228.0, 2063.0},
-        {2244.0, 1473.0},
-        {2276.0, 1646.0},
-        {2276.0, 1827.0},
-        {2276.0, 1985.0},
-        {2315.0, 1985.0},
-        {2315.0, 1827.0},
-        {2315.0, 1646.0},
-        {2331.0, 1473.0},
-        {2346.0, 1646.0},
-        {2346.0, 1827.0},
-        {2346.0, 1985.0},
-        {2362.0, 1473.0},
-        {2402.0, 1488.0},
-        {2402.0, 1551.0},
-        {2480.0, 1473.0},
-        {2496.0, 1701.0},
-        {2528.0, 2607.0},
-        {2559.0, 2544.0},
-        {2630.0, 1961.0},
-        {2638.0, 2063.0},
-        {2756.0, 1400.0},
-        {2787.0, 1400.0},
-        {2803.0, 1701.0},
-        {2835.0, 2607.0},
-        {2866.0, 2544.0},
-        {2906.0, 1400.0},
-        {2937.0, 1400.0},
-        {2937.0, 1961.0},
-        {2945.0, 2063.0},
-        {3016.0, 2607.0},
-        {3055.0, 1400.0},
-        {3087.0, 1400.0},
-        {606.0, 1551.0},
-        {1165.0, 1701.0},
-        {1780.0, 1701.0},
-        {63.0, 2733.0},
-        {94.0, 2733.0},
-        {142.0, 3032.0},
-        {173.0, 3938.0},
-        {205.0, 3875.0},
-        {213.0, 2731.0},
-        {244.0, 2731.0},
-        {276.0, 3292.0},
-        {283.0, 3394.0},
-        {362.0, 2731.0},
-        {394.0, 2731.0},
-        {449.0, 3032.0},
-        {480.0, 3938.0},
-        {512.0, 3875.0},
-        {528.0, 2819.0},
-        {583.0, 3292.0},
-        {591.0, 3394.0},
-        {638.0, 3316.0},
-        {638.0, 3158.0},
-        {638.0, 2976.0},
-        {638.0, 2804.0},
-        {669.0, 2804.0},
-        {677.0, 2977.0},
-        {677.0, 3158.0},
-        {677.0, 3316.0},
-        {709.0, 3316.0},
-        {709.0, 3158.0},
-        {709.0, 2977.0},
-        {701.0, 2804.0},
-        {764.0, 2882.0},
-        {811.0, 2851.0},
-        {843.0, 2835.0},
-        {858.0, 3032.0},
-        {890.0, 3938.0},
-        {921.0, 3875.0},
-        {992.0, 3292.0},
-        {1000.0, 3394.0},
-        {1197.0, 3938.0},
-        {1228.0, 3875.0},
-        {1276.0, 2867.0},
-        {1299.0, 3292.0},
-        {1307.0, 3394.0},
-        {1362.0, 3316.0},
-        {1362.0, 3158.0},
-        {1362.0, 2953.0},
-        {1425.0, 3316.0},
-        {1425.0, 3158.0},
-        {1425.0, 2953.0},
-        {1417.0, 2835.0},
-        {1488.0, 2953.0},
-        {1488.0, 3158.0},
-        {1488.0, 3316.0},
-        {1551.0, 3316.0},
-        {1551.0, 3158.0},
-        {1551.0, 2953.0},
-        {1614.0, 2953.0},
-        {1614.0, 3158.0},
-        {1614.0, 3316.0},
-        {1732.0, 2851.0},
-        {1811.0, 3938.0},
-        {1843.0, 3875.0},
-        {1913.0, 3292.0},
-        {1921.0, 3394.0},
-        {2087.0, 3032.0},
-        {2118.0, 3938.0},
-        {2150.0, 3875.0},
-        {2189.0, 2867.0},
-        {2220.0, 2851.0},
-        {2220.0, 3292.0},
-        {2228.0, 3394.0},
-        {2244.0, 2804.0},
-        {2276.0, 2977.0},
-        {2276.0, 3158.0},
-        {2276.0, 3316.0},
-        {2315.0, 3316.0},
-        {2315.0, 3158.0},
-        {2315.0, 2977.0},
-        {2331.0, 2804.0},
-        {2346.0, 2977.0},
-        {2346.0, 3158.0},
-        {2346.0, 3316.0},
-        {2362.0, 2804.0},
-        {2402.0, 2819.0},
-        {2402.0, 2882.0},
-        {2480.0, 2804.0},
-        {2496.0, 3032.0},
-        {2528.0, 3938.0},
-        {2559.0, 3875.0},
-        {2630.0, 3292.0},
-        {2638.0, 3394.0},
-        {2756.0, 2731.0},
-        {2787.0, 2731.0},
-        {2803.0, 3032.0},
-        {2835.0, 3938.0},
-        {2866.0, 3875.0},
-        {2906.0, 2731.0},
-        {2937.0, 2731.0},
-        {2937.0, 3292.0},
-        {2945.0, 3394.0},
-        {3016.0, 3938.0},
-        {3055.0, 2731.0},
-        {3087.0, 2731.0},
-        {606.0, 2882.0},
-        {1165.0, 3032.0},
-        {1780.0, 3032.0},
-        {1417.0, -79.0},
-        {1496.0, -79.0},
-        {1693.0, 4055.0}
-    };
-    */
     char arquivo[50];
-    scanf("%s",arquivo);
-    Cidade* cidades = lerArquivo(arquivo);
+    int numCidades;
 
-    // Matriz para armazenar as distâncias
-    double distancias[NUM_CIDADES][NUM_CIDADES];
+    printf("Digite o nome do arquivo: ");
+    scanf("%s", arquivo);
+    printf("Digite o numero de cidades: ");
+    scanf("%d", &numCidades);
+    Cidade* cidades = lerArquivo(arquivo, numCidades);
 
-    // Criar a matriz de distâncias
-    matrizDistancias(cidades, distancias);
+    double** distancias = malloc(numCidades * sizeof(double*));
+    for (int i = 0; i < numCidades; i++) {
+        distancias[i] = malloc(numCidades * sizeof(double));
+    }
 
-    ChristofidesAlgorithm(distancias);
-    
+    matrizDistancias(cidades, distancias, numCidades);
+    ChristofidesAlgorithm(distancias, numCidades);
+    free(cidades);
+    for (int i = 0; i < numCidades; i++) {
+        free(distancias[i]);
+    }
+    free(distancias);
     return 0;
 }
